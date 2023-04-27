@@ -20,13 +20,16 @@ struct RBNode {
 
 
 //0 left rotation 1 right
-void rotate(RBNode* root, RBNode* subtree, bool dir) {
+void rotate(RBNode*& root, RBNode* subtree, bool dir) {
   RBNode* grandparent = subtree->parent;
   RBNode* s = (dir ? subtree->left : subtree->right);
   subtree->parent = s;
   s->parent = grandparent;
-  if (grandparent->left == subtree) grandparent->left = s;
-  else grandparent->right = s;
+  if (grandparent != nullptr) { //not root
+    if (grandparent->left == subtree) grandparent->left = s;
+    else grandparent->right = s;
+  }
+  else root = s;
   
   if (!dir) { //left
     subtree->right = s->left;
@@ -55,16 +58,23 @@ void insert(RBNode*& root, RBNode* n) {
   }
 
   n->color = RED;
+  //n->left = nullptr;
+  //n->right = nullptr;
+  n->parent = prev;
   RBNode* parent = prev;
-  if (parent = nullptr) { //tree is empty, n should be black root
+  if (parent == nullptr) { //tree is empty, n should be black root
     n->color = BLACK;
     root = n;
     return;
   }
 
   //add to tree
-  if (n->value > parent->value) parent->right = n;
-  else parent->left = n;
+  if (n->value > parent->value) {
+    parent->right = n;
+  }
+  else {
+    parent->left = n;
+  }
 
   //check conditions
   if (parent->color == BLACK) { //no change
@@ -72,12 +82,18 @@ void insert(RBNode*& root, RBNode* n) {
   }
 
   RBNode* grandparent = parent->parent;
+
   RBNode* uncle = (grandparent->left == parent ? grandparent->right : grandparent->left);
+  //if (grandparent->left == nullptr) uncle = grandparent->right;
+  //else uncle = grandparent->left;
+  
+  //if (grandparent == nullptr || uncle == nullptr) return;
   //parent and uncle are red
-  if (uncle->color == RED) { //
+  if (uncle != nullptr && uncle->color == RED) { //
     parent->color = BLACK;
     uncle->color = BLACK;
     grandparent->color = RED;
+    root->color = BLACK;
   }
   else {
     if (grandparent->right == parent) {
@@ -221,6 +237,9 @@ int main() {
       RBNode* newn = new RBNode();
       newn->value = n;
       insert(root, newn);
+
+      display(root, 0);
+      std::cout << "--------------------------\n\n\n";
     }
     ifs.close();
   }
