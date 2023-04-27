@@ -12,20 +12,34 @@ const int RED = 1;
 
 struct RBNode {
   RBNode* parent;
-  RBNode* child[2];
+  RBNode* left;
+  RBNode* right;
   bool color;
   int value;
 };
 
 
-//
-void rotate(RBNode* root, RBNode*& subtree, bool dir) {
-  RBNode* g = subtree->parent;
-  RBNode* s = subtree->child[dir];
+//0 left rotation 1 right
+void rotate(RBNode* root, RBNode* subtree, bool dir) {
+  RBNode* grandparent = subtree->parent;
+  RBNode* s = (dir ? subtree->left : subtree->right);
   subtree->parent = s;
-  s->parent = g;
-  g->child[] = s;
+  s->parent = grandparent;
+  if (grandparent->left == subtree) grandparent->left = s;
+  else grandparent->right = s;
   
+  if (!dir) { //left
+    subtree->right = s->left;
+    s->left = subtree;
+    
+  }
+  else { //right
+    subtree->left = s->right;
+    s->right = subtree;
+  }
+
+  //std::cout << s->right->value << " " << s->left->value << "\n";
+  //std::cout << grandparent->value << "\n" << s->value << "\n" << subtree->value << "\n";
 }
 
 
@@ -40,21 +54,68 @@ void insert(RBNode*& root, RBNode* n) {
     else curr = curr->left;
   }
 
+  n->color = RED;
   RBNode* parent = prev;
-  RBNode* grandp = parent->parent;
-  if (parent->color == BLACK) {
+  if (parent = nullptr) { //tree is empty, n should be black root
+    n->color = BLACK;
+    root = n;
     return;
   }
-  //parent is red
-  if (grandp == nullptr) { //parent is root
 
+  //add to tree
+  if (n->value > parent->value) parent->right = n;
+  else parent->left = n;
+
+  //check conditions
+  if (parent->color == BLACK) { //no change
+    return;
+  }
+
+  RBNode* grandparent = parent->parent;
+  RBNode* uncle = (grandparent->left == parent ? grandparent->right : grandparent->left);
+  //parent and uncle are red
+  if (uncle->color == RED) { //
+    parent->color = BLACK;
+    uncle->color = BLACK;
+    grandparent->color = RED;
+  }
+  else {
+    if (grandparent->right == parent) {
+      if (parent->right == n) { //P is right child of G, n is right child of P
+	rotate(root, grandparent, 0); //left rotate to make G sibling of n
+	grandparent->color = RED;
+	parent->color = BLACK;
+      }
+      else { //n is left child of P
+	rotate(root, parent, 1);
+	rotate(root, grandparent, 0);
+	grandparent->color = RED;
+	parent->color = BLACK;
+      }
+    }
+    if (grandparent->left == parent) {
+      if (parent->left == n) {
+	rotate(root, grandparent, 1);
+	grandparent->color = RED;
+	parent->color = BLACK;
+      }
+      else {
+	rotate(root, parent, 0);
+	rotate(root, grandparent, 1);
+	grandparent->color = RED;
+	parent->color = BLACK;
+      }
+    }
   }
   
-
+  /*
   n->parent = prev;
-  if (prev == nullptr) root = n; //first node, set root
+  if (prev == nullptr) {
+    root = n; //first node, set root
+  }
   else if (n->value > prev->value) prev->right = n;
   else prev->left = n;
+  */
 }
 
 //find an element in tree
@@ -81,6 +142,8 @@ void shift(RBNode*& root, RBNode* del, RBNode* rep) {
 }
 
 //remove a specific node
+
+/*
 void remove(RBNode*& root, RBNode* node) {
 
   if (node->left == nullptr) { //right child exists or leaf node
@@ -105,6 +168,7 @@ void remove(RBNode*& root, RBNode* node) {
   }
   delete node;
 }
+*/
 
 //print out the tree
 void display(RBNode* current, int depth) {
@@ -115,7 +179,7 @@ void display(RBNode* current, int depth) {
   }
   
   for (int i = 0; i < depth; ++i) std::cout << '\t';
-  std::cout << current->value << "\n";
+  std::cout << current->value << " " << (current->color ? "R" : "B") << "\n";
 
   if (current->left != nullptr) display(current->left, depth+1);
   else {
@@ -160,7 +224,16 @@ int main() {
     }
     ifs.close();
   }
-    
+
+  display(root, 0);
+  /*
+  rotate(root, root->right, 0);
+  std::cout << "\n-----------------------\n";
+  display(root, 0);
+  rotate(root, root->right, 1);
+  std::cout << "\n-----------------------\n";
+  display(root, 0);
+  /*  
   bool running = true;
   while (running) {
     std::cout << "Enter a command (add, remove, search, print, quit):\n";
@@ -192,6 +265,6 @@ int main() {
     if (strncmp(input, "quit", 4) == 0) {
       running = false;
     }
-  }
+    }*/
   return 0;
 }
