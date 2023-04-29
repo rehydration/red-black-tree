@@ -1,5 +1,9 @@
 /* 
 
+Nathan Zhou
+4/28/23
+
+Red-black tree implementation, part 1 - insertion
 
 */
 
@@ -19,10 +23,11 @@ struct RBNode {
 };
 
 
-//0 left rotation 1 right
+//rotate to bring node down left/right
+//0 left rotation, 1 right
 void rotate(RBNode*& root, RBNode* subtree, bool dir) {
   RBNode* grandparent = subtree->parent;
-  RBNode* s = (dir ? subtree->left : subtree->right);
+  RBNode* s = (dir ? subtree->left : subtree->right); //child of node that will take its spot
   subtree->parent = s;
   s->parent = grandparent;
   if (grandparent != nullptr) { //not root
@@ -33,24 +38,22 @@ void rotate(RBNode*& root, RBNode* subtree, bool dir) {
   
   if (!dir) { //left
     subtree->right = s->left;
+    if (subtree->right != nullptr) subtree->right->parent = subtree;
     s->left = subtree;
     
   }
   else { //right
     subtree->left = s->right;
+    if (subtree->left != nullptr) subtree->left->parent = subtree;
     s->right = subtree;
   }
-
-  //std::cout << s->right->value << " " << s->left->value << "\n";
-  //std::cout << grandparent->value << "\n" << s->value << "\n" << subtree->value << "\n";
 }
-
 
 //insert a new node into tree
 void insert(RBNode*& root, RBNode* n) {
   RBNode* prev = nullptr;
   RBNode* curr = root;
-  while (curr != nullptr) {
+  while (curr != nullptr) { //find location
     prev = curr;
     if (n->value > curr->value)
       curr = curr->right; //larger values on right, smaller on left
@@ -58,10 +61,11 @@ void insert(RBNode*& root, RBNode* n) {
   }
 
   n->color = RED;
-  //n->left = nullptr;
-  //n->right = nullptr;
   n->parent = prev;
-  RBNode* parent = prev;
+  RBNode* parent;
+  RBNode* grandparent;
+  RBNode* uncle;
+  parent = prev;
   if (parent == nullptr) { //tree is empty, n should be black root
     n->color = BLACK;
     root = n;
@@ -81,59 +85,54 @@ void insert(RBNode*& root, RBNode* n) {
     return;
   }
 
-  RBNode* grandparent = parent->parent;
+  //balance until all conditions are fulfilled
+  while (n->parent != nullptr && n->parent->color != BLACK && n->color == RED) {
+    parent = n->parent;
+    grandparent = parent->parent;
+    uncle = (grandparent->left == parent ? grandparent->right : grandparent->left);
+    
+    //parent and uncle are red
+    if (uncle != nullptr && uncle->color == RED) {
+      parent->color = BLACK;
+      uncle->color = BLACK;
+      grandparent->color = RED;
+      n = grandparent; //reassign and repeat steps to recolor
 
-  RBNode* uncle = (grandparent->left == parent ? grandparent->right : grandparent->left);
-  //if (grandparent->left == nullptr) uncle = grandparent->right;
-  //else uncle = grandparent->left;
-  
-  //if (grandparent == nullptr || uncle == nullptr) return;
-  //parent and uncle are red
-  if (uncle != nullptr && uncle->color == RED) { //
-    parent->color = BLACK;
-    uncle->color = BLACK;
-    grandparent->color = RED;
-    root->color = BLACK;
-  }
-  else {
+      root->color = BLACK;
+      continue;
+    }
+
+    //uncle is black
     if (grandparent->right == parent) {
       if (parent->right == n) { //P is right child of G, n is right child of P
-	rotate(root, grandparent, 0); //left rotate to make G sibling of n
-	grandparent->color = RED;
-	parent->color = BLACK;
+  rotate(root, grandparent, 0); //left rotate to make G sibling of n
+  grandparent->color = RED;
+  parent->color = BLACK;
       }
       else { //n is left child of P
-	rotate(root, parent, 1);
-	rotate(root, grandparent, 0);
-	grandparent->color = RED;
-	parent->color = BLACK;
+  rotate(root, parent, 1); //rotate to bring all nodes to right, reduce case to previous
+  rotate(root, grandparent, 0);
+  grandparent->color = RED;
+  n->color = BLACK;
       }
     }
-    if (grandparent->left == parent) {
+    if (grandparent->left == parent) { //mirror of first case
       if (parent->left == n) {
-	rotate(root, grandparent, 1);
-	grandparent->color = RED;
-	parent->color = BLACK;
+  rotate(root, grandparent, 1);
+  grandparent->color = RED;
+  parent->color = BLACK;
       }
-      else {
-	rotate(root, parent, 0);
-	rotate(root, grandparent, 1);
-	grandparent->color = RED;
-	parent->color = BLACK;
+      else { //mirror of second case
+  rotate(root, parent, 0);
+  rotate(root, grandparent, 1);
+  grandparent->color = RED;
+  n->color = BLACK;
       }
     }
   }
-  
-  /*
-  n->parent = prev;
-  if (prev == nullptr) {
-    root = n; //first node, set root
-  }
-  else if (n->value > prev->value) prev->right = n;
-  else prev->left = n;
-  */
 }
 
+/*
 //find an element in tree
 RBNode* search(RBNode*& root, int value) {
   RBNode* current = root;
@@ -159,7 +158,6 @@ void shift(RBNode*& root, RBNode* del, RBNode* rep) {
 
 //remove a specific node
 
-/*
 void remove(RBNode*& root, RBNode* node) {
 
   if (node->left == nullptr) { //right child exists or leaf node
@@ -189,19 +187,13 @@ void remove(RBNode*& root, RBNode* node) {
 //print out the tree
 void display(RBNode* current, int depth) {
   if (current->right != nullptr) display(current->right, depth+1);
-  else {
-    for (int i = 0; i <= depth; ++i) std::cout << '\t';
-    std::cout << 'X' << "\n";
-  }
   
+  //output value and color
   for (int i = 0; i < depth; ++i) std::cout << '\t';
-  std::cout << current->value << " " << (current->color ? "R" : "B") << "\n";
+  std::cout << current->value << " " << (current->color ? "R" : "B") << "\n\n";
 
   if (current->left != nullptr) display(current->left, depth+1);
-  else {
-    for (int i = 0; i <= depth; ++i) std::cout << '\t';
-    std::cout << 'X' << "\n";
-  }
+
 }
 
 int main() {
@@ -237,25 +229,13 @@ int main() {
       RBNode* newn = new RBNode();
       newn->value = n;
       insert(root, newn);
-
-      display(root, 0);
-      std::cout << "--------------------------\n\n\n";
     }
     ifs.close();
   }
 
-  display(root, 0);
-  /*
-  rotate(root, root->right, 0);
-  std::cout << "\n-----------------------\n";
-  display(root, 0);
-  rotate(root, root->right, 1);
-  std::cout << "\n-----------------------\n";
-  display(root, 0);
-  /*  
   bool running = true;
   while (running) {
-    std::cout << "Enter a command (add, remove, search, print, quit):\n";
+    std::cout << "Enter a command (add, print, quit):\n";
     std::cin >> input;
 
     if (strncmp(input, "add", 3) == 0) {
@@ -266,6 +246,7 @@ int main() {
       insert(root, newn);
       std::cout << n << " added to tree\n";
     }
+    /*
     if (strncmp(input, "remove", 6) == 0) {
       std::cout << "Enter the number to be removed:\n";
       std::cin >> n;
@@ -278,12 +259,13 @@ int main() {
       if (!search(root, n)) std::cout << n << " is not in the tree\n";
       else std::cout << n << " is in the tree\n";
     }
+    */
     if (strncmp(input, "print", 6) == 0) {
       display(root, 0);
     }
     if (strncmp(input, "quit", 4) == 0) {
       running = false;
     }
-    }*/
+  }
   return 0;
 }
