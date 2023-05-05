@@ -1,10 +1,5 @@
 /* 
 
-Nathan Zhou
-4/28/23
-
-Red-black tree implementation, part 1 - insertion
-
 */
 
 #include <iostream>
@@ -105,34 +100,34 @@ void insert(RBNode*& root, RBNode* n) {
     //uncle is black
     if (grandparent->right == parent) {
       if (parent->right == n) { //P is right child of G, n is right child of P
-  rotate(root, grandparent, 0); //left rotate to make G sibling of n
-  grandparent->color = RED;
-  parent->color = BLACK;
+	rotate(root, grandparent, 0); //left rotate to make G sibling of n
+	grandparent->color = RED;
+	parent->color = BLACK;
       }
       else { //n is left child of P
-  rotate(root, parent, 1); //rotate to bring all nodes to right, reduce case to previous
-  rotate(root, grandparent, 0);
-  grandparent->color = RED;
-  n->color = BLACK;
+	rotate(root, parent, 1); //rotate to bring all nodes to right, reduce case to previous
+	rotate(root, grandparent, 0);
+	grandparent->color = RED;
+	n->color = BLACK;
       }
     }
     if (grandparent->left == parent) { //mirror of first case
       if (parent->left == n) {
-  rotate(root, grandparent, 1);
-  grandparent->color = RED;
-  parent->color = BLACK;
+	rotate(root, grandparent, 1);
+	grandparent->color = RED;
+	parent->color = BLACK;
       }
       else { //mirror of second case
-  rotate(root, parent, 0);
-  rotate(root, grandparent, 1);
-  grandparent->color = RED;
-  n->color = BLACK;
+	rotate(root, parent, 0);
+	rotate(root, grandparent, 1);
+	grandparent->color = RED;
+	n->color = BLACK;
       }
     }
   }
 }
 
-/*
+
 //find an element in tree
 RBNode* search(RBNode*& root, int value) {
   RBNode* current = root;
@@ -159,30 +154,43 @@ void shift(RBNode*& root, RBNode* del, RBNode* rep) {
 //remove a specific node
 
 void remove(RBNode*& root, RBNode* node) {
-
-  if (node->left == nullptr) { //right child exists or leaf node
-    shift(root, node, node->right);
-  }
-  else if (node->right == nullptr) { //left child only
-    shift(root, node, node->left);
-  }
-
-  else { //node has two children
-    RBNode* successor = node->right; //find smallest node greater than node to be deleted
-    while (successor->left != nullptr) successor = successor->left;
-    if (successor->parent != node) { //successor is not immediate right child
-      shift(root, successor, successor->right);
-      successor->right = node->right;
-      successor->right->parent = successor;
+  RBNode* sibling;
+  RBNode* dist;
+  RBNode* close;
+  RBNode* parent;
+  
+  parent = node->parent;
+  sibling = (parent->right == node ? parent->left : parent->right);
+  dist = sibling->right;
+  close = sibling->left;
+  
+  while (node->parent != nullptr && node->color ) {
+    
+    if (sibling->color == RED) {
+      if (parent->right == sibling) {
+	rotate(root, sibling, 0);
+      }
+      else {
+	rotate(root, sibling, 1);
+	
+      }
+      sibling->color = BLACK;
+      node->color = !node->color;
     }
-    //immediate right child
-    shift(root, node, successor);
-    successor->left = node->left;
-    successor->left->parent = successor;
+
+    if (dist != nullptr && dist->color == RED) {
+    }
+
+    if (close != nullptr && close->color == RED) {
+    }
+
+    if (parent->color == RED) {
+    }
   }
+  
   delete node;
 }
-*/
+
 
 //print out the tree
 void display(RBNode* current, int depth) {
