@@ -154,41 +154,74 @@ void shift(RBNode*& root, RBNode* del, RBNode* rep) {
 //remove a specific node
 
 void remove(RBNode*& root, RBNode* node) {
+  if (node->left == nullptr || node->right == nullptr) { //only has one child
+    
+  }
+
+  
   RBNode* sibling;
   RBNode* dist;
   RBNode* close;
   RBNode* parent;
+  bool side; //side of parent of node
   
   parent = node->parent;
-  sibling = (parent->right == node ? parent->left : parent->right);
   dist = sibling->right;
   close = sibling->left;
-  
-  while (node->parent != nullptr && node->color ) {
-    
-    if (sibling->color == RED) {
-      if (parent->right == sibling) {
-	rotate(root, sibling, 0);
-      }
-      else {
-	rotate(root, sibling, 1);
-	
-      }
-      sibling->color = BLACK;
-      node->color = !node->color;
-    }
 
-    if (dist != nullptr && dist->color == RED) {
-    }
-
-    if (close != nullptr && close->color == RED) {
-    }
-
-    if (parent->color == RED) {
-    }
+  if (parent->right == node) {
+    sibling = parent->left;
+    side = 1;
+  }
+  else {
+    sibling = parent->right;
+    side = 0;
   }
   
-  delete node;
+  
+  while (node->parent != nullptr && node->color == BLACK) {
+    /*if (parent->color == BLACK && sibling->color == BLACK && close->color == BLACK && dist->color == BLACK) {
+      sibling->color = RED;
+      node = parent;
+      } */   
+
+    
+    if (sibling->color == RED) { // S red, P + C + D black
+      
+      rotate(root, parent, side);
+      parent->color = RED;
+      
+      sibling->color = BLACK;
+      sibling = close;
+      dist = (side ? s->left : s->right);
+      //case 6
+      
+      close = (side ? s->right : s->left);
+      //case 5
+
+
+      //case 4
+    }
+
+    if (dist != nullptr && dist->color == RED) { // C red, S + D black
+      rotate(root, sibling, !side);
+      swap(sibling, close);
+      sibling->color = RED;
+      close->color = BLACK;
+    }
+
+    if (close != nullptr && close->color == RED) { // D red, S black
+
+    }
+
+    if (parent->color == RED) { // P red, S and its children black
+      parent->color = BLACK;
+      sibling->color = RED;
+    }
+
+    
+  }
+  
 }
 
 
