@@ -100,28 +100,28 @@ void insert(RBNode*& root, RBNode* n) {
     //uncle is black
     if (grandparent->right == parent) {
       if (parent->right == n) { //P is right child of G, n is right child of P
-	rotate(root, grandparent, 0); //left rotate to make G sibling of n
-	grandparent->color = RED;
-	parent->color = BLACK;
+	      rotate(root, grandparent, 0); //left rotate to make G sibling of n
+	      grandparent->color = RED;
+	      parent->color = BLACK;
       }
       else { //n is left child of P
-	rotate(root, parent, 1); //rotate to bring all nodes to right, reduce case to previous
-	rotate(root, grandparent, 0);
-	grandparent->color = RED;
-	n->color = BLACK;
+        rotate(root, parent, 1); //rotate to bring all nodes to right, reduce case to previous
+        rotate(root, grandparent, 0);
+        grandparent->color = RED;
+        n->color = BLACK;
       }
     }
     if (grandparent->left == parent) { //mirror of first case
       if (parent->left == n) {
-	rotate(root, grandparent, 1);
-	grandparent->color = RED;
-	parent->color = BLACK;
+        rotate(root, grandparent, 1);
+        grandparent->color = RED;
+        parent->color = BLACK;
       }
       else { //mirror of second case
-	rotate(root, parent, 0);
-	rotate(root, grandparent, 1);
-	grandparent->color = RED;
-	n->color = BLACK;
+        rotate(root, parent, 0);
+        rotate(root, grandparent, 1);
+        grandparent->color = RED;
+        n->color = BLACK;
       }
     }
   }
@@ -151,14 +151,67 @@ void shift(RBNode*& root, RBNode* del, RBNode* rep) {
   if (del == del->parent->right) del->parent->right = rep; //deleted node is right
 }
 
+
+bool remove_simple(RBNode* node) {
+  if (node->left == nullptr && node->right == nullptr) { //no children
+    delete node;
+    return true;
+  }
+
+  if (node->left == nullptr || node->right == nullptr) { //one red child
+    if (node->left != nullptr) { //replace node with child
+      RBNode* newn = node->left;
+      if (node == node->parent->left) node->parent->left = newn;
+      if (node == node->parent->right) node->parent->right = newn;
+      newn->parent = node->parent;
+      newn->color = BLACK;
+      delete node;
+    }
+    else if (node->right != nullptr) { //replace node with child
+      RBNode* newn = node->right;
+      if (node == node->parent->left) node->parent->left = newn;
+      if (node == node->parent->right) node->parent->right = newn;
+      newn->parent = node->parent;
+      newn->color = BLACK;
+      delete node;
+    }
+    return true;
+  }
+
+  return false;
+}
+
+
 //remove a specific node
 
 void remove(RBNode*& root, RBNode* node) {
-  if (node->left == nullptr || node->right == nullptr) { //only has one child
-    
-  }
-
+  if (remove_simple(node)) return;
   
+  RBNode* successor = node->right; //find smallest node greater than node to be deleted
+  while (successor->left != nullptr) successor = successor->left;
+
+  /*
+  if (successor->parent != node) { //successor is not immediate right child
+    shift(root, successor, successor->right);
+    successor->right = node->right;
+    successor->right->parent = successor;
+    }*/
+
+  RBNode* temp = node; //swap 
+  if (node->parent->left == node) node->parent->left = successor;
+  else node->parent->right = successor;
+  if (successor->parent->left == successor) successor->parent->left = node;
+  else successor->parent->right = node;
+  std::swap(node->parent, successor->parent);
+  std::swap(node->left, successor->left);
+  std::swap(node->right, successor->right);
+  std::swap(node->value, successor->value);
+  std::swap(node->color, successor->color);
+
+  return;
+
+  if (remove_simple(node)) return;
+
   RBNode* sibling;
   RBNode* dist;
   RBNode* close;
@@ -166,24 +219,34 @@ void remove(RBNode*& root, RBNode* node) {
   bool side; //side of parent of node
   
   parent = node->parent;
-  dist = sibling->right;
-  close = sibling->left;
 
-  if (parent->right == node) {
+
+  if (parent->right == node) { //node is right of parent
     sibling = parent->left;
+    dist = sibling->left;
+    close = sibling->right;
     side = 1;
   }
-  else {
+  else { //node is left of parent
     sibling = parent->right;
+    dist = sibling->right;
+    close = sibling->left;
     side = 0;
-  }
+  }  
+  delete node;
   
   
-  while (node->parent != nullptr && node->color == BLACK) {
-    /*if (parent->color == BLACK && sibling->color == BLACK && close->color == BLACK && dist->color == BLACK) {
-      sibling->color = RED;
-      node = parent;
-      } */   
+  while (parent != nullptr && (node == nullptr || node->color == BLACK)) {
+    if (parent->color == BLACK && sibling->color == BLACK
+	&& close->color == BLACK && dist->color == BLACK) {
+      do {
+        sibling->color = RED;
+        node = parent;
+        parent = node->parent;
+      } while (parent != nullptr);
+
+      return;
+    }
 
     
     if (sibling->color == RED) { // S red, P + C + D black
@@ -193,10 +256,10 @@ void remove(RBNode*& root, RBNode* node) {
       
       sibling->color = BLACK;
       sibling = close;
-      dist = (side ? s->left : s->right);
+      dist = (side ? sibling->left : sibling->right);
       //case 6
       
-      close = (side ? s->right : s->left);
+      close = (side ? sibling->right : sibling->left);
       //case 5
 
 
@@ -205,18 +268,23 @@ void remove(RBNode*& root, RBNode* node) {
 
     if (dist != nullptr && dist->color == RED) { // C red, S + D black
       rotate(root, sibling, !side);
-      swap(sibling, close);
       sibling->color = RED;
       close->color = BLACK;
+      std::swap(sibling, close);
     }
 
     if (close != nullptr && close->color == RED) { // D red, S black
-
+      rotate(root, sibling, side);
+      sibling->color = parent->color;
+      parent->color = BLACK;
+      dist->color = BLACK;
+      return;
     }
 
     if (parent->color == RED) { // P red, S and its children black
       parent->color = BLACK;
       sibling->color = RED;
+      return;
     }
 
     
@@ -276,7 +344,7 @@ int main() {
 
   bool running = true;
   while (running) {
-    std::cout << "Enter a command (add, print, quit):\n";
+    std::cout << "Enter a command (add, remove, search, print, quit):\n";
     std::cin >> input;
 
     if (strncmp(input, "add", 3) == 0) {
@@ -287,7 +355,7 @@ int main() {
       insert(root, newn);
       std::cout << n << " added to tree\n";
     }
-    /*
+    
     if (strncmp(input, "remove", 6) == 0) {
       std::cout << "Enter the number to be removed:\n";
       std::cin >> n;
@@ -300,7 +368,7 @@ int main() {
       if (!search(root, n)) std::cout << n << " is not in the tree\n";
       else std::cout << n << " is in the tree\n";
     }
-    */
+    
     if (strncmp(input, "print", 6) == 0) {
       display(root, 0);
     }
