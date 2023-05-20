@@ -1,5 +1,11 @@
 /* 
 
+Nathan Zhou
+5/19/23
+
+Red black tree with insertion, deletion, search, and display
+Logic from en.wikipedia.org/wiki/Red-black_tree
+
 */
 
 #include <iostream>
@@ -147,105 +153,85 @@ void shift(RBNode*& root, RBNode* del, RBNode* rep) {
     return;
   }
   
-  if (del == (del->parent->left)) del->parent->left = rep; //deleted node is left
+  if (del == del->parent->left) del->parent->left = rep; //deleted node is left
   if (del == del->parent->right) del->parent->right = rep; //deleted node is right
 }
 
 
-bool remove_simple(RBNode* node) {
-  if (node->left == nullptr && node->right == nullptr) { //no children
-    delete node;
-    return true;
-  }
-
-  if (node->left == nullptr || node->right == nullptr) { //one red child
-    if (node->left != nullptr) { //replace node with child
-      RBNode* newn = node->left;
-      if (node == node->parent->left) node->parent->left = newn;
-      if (node == node->parent->right) node->parent->right = newn;
-      newn->parent = node->parent;
-      newn->color = BLACK;
-      delete node;
-    }
-    else if (node->right != nullptr) { //replace node with child
-      RBNode* newn = node->right;
-      if (node == node->parent->left) node->parent->left = newn;
-      if (node == node->parent->right) node->parent->right = newn;
-      newn->parent = node->parent;
-      newn->color = BLACK;
-      delete node;
-    }
-    return true;
-  }
-
-  return false;
-}
-
 
 //remove a specific node
-
 void remove(RBNode*& root, RBNode* node) {
-  if (remove_simple(node)) return;
+  if (node->left == nullptr && node->right == nullptr) { //no children
+    if (node->parent->left == node) node->parent->left = nullptr;
+    else node->parent->right = nullptr;
+    delete node;
+    return;
+  }
+
+  if (node->left == nullptr || node->right == nullptr) { //one child, replace with child
+    if (node->left != nullptr) {
+      node->left->color = BLACK;
+      shift(root, node, node->left);
+      delete node;
+    }
+    else if (node->right != nullptr) {
+      node->right->color = BLACK;
+      shift(root, node, node->right);
+      delete node;
+    }
+    return;
+  }
   
   RBNode* successor = node->right; //find smallest node greater than node to be deleted
   while (successor->left != nullptr) successor = successor->left;
+  node->value = successor->value; //successor takes place of node
+  
 
-  /*
-  if (successor->parent != node) { //successor is not immediate right child
+  if (successor->color != BLACK) { 
     shift(root, successor, successor->right);
-    successor->right = node->right;
-    successor->right->parent = successor;
-    }*/
-
-  RBNode* temp = node; //swap 
-  if (node->parent->left == node) node->parent->left = successor;
-  else node->parent->right = successor;
-  if (successor->parent->left == successor) successor->parent->left = node;
-  else successor->parent->right = node;
-  std::swap(node->parent, successor->parent);
-  std::swap(node->left, successor->left);
-  std::swap(node->right, successor->right);
-  std::swap(node->value, successor->value);
-  std::swap(node->color, successor->color);
-
-  return;
-
-  if (remove_simple(node)) return;
-
+    delete successor;
+    return; 
+  }
+  
+  //fix tree if black node was deleted
+  RBNode* y = successor->right;
   RBNode* sibling;
-  RBNode* dist;
-  RBNode* close;
+  RBNode* dist; //distant child of sibling
+  RBNode* close; //close child of sibling
   RBNode* parent;
   bool side; //side of parent of node
   
-  parent = node->parent;
+  parent = successor->parent;
 
 
-  if (parent->right == node) { //node is right of parent
+  if (parent->right == successor) { //node is right of parent
     sibling = parent->left;
-    dist = sibling->left;
-    close = sibling->right;
+    if (sibling != nullptr) {
+      dist = sibling->left;
+      close = sibling->right;
+    }
     side = 1;
   }
   else { //node is left of parent
     sibling = parent->right;
-    dist = sibling->right;
-    close = sibling->left;
+    if (sibling != nullptr) {
+      dist = sibling->right;
+      close = sibling->left;
+    }
     side = 0;
-  }  
-  delete node;
+  }
   
-  
-  while (parent != nullptr && (node == nullptr || node->color == BLACK)) {
+  bool invalid = true;
+  while (invalid) {
     if (parent->color == BLACK && sibling->color == BLACK
-	&& close->color == BLACK && dist->color == BLACK) {
+	    && (close == nullptr || close->color == BLACK) && (dist == nullptr || dist->color == BLACK)) { //all black
       do {
         sibling->color = RED;
         node = parent;
         parent = node->parent;
       } while (parent != nullptr);
 
-      return;
+      break; //end
     }
 
     
@@ -256,40 +242,37 @@ void remove(RBNode*& root, RBNode* node) {
       
       sibling->color = BLACK;
       sibling = close;
-      dist = (side ? sibling->left : sibling->right);
-      //case 6
-      
-      close = (side ? sibling->right : sibling->left);
-      //case 5
-
-
-      //case 4
-    }
-
-    if (dist != nullptr && dist->color == RED) { // C red, S + D black
-      rotate(root, sibling, !side);
-      sibling->color = RED;
-      close->color = BLACK;
-      std::swap(sibling, close);
+      if (sibling != nullptr) dist = (side ? sibling->left : sibling->right);
+      if (sibling != nullptr) close = (side ? sibling->right : sibling->left);
+      //continue to one of next 3 cases
     }
 
     if (close != nullptr && close->color == RED) { // D red, S black
-      rotate(root, sibling, side);
-      sibling->color = parent->color;
+      rotate(root, sibling, !side);
+      if (sibling != nullptr) sibling->color = RED;
+      if (close != nullptr) close->color = BLACK;
+      dist = sibling;
+      sibling = close; //transforms into next case
+    }
+
+    if (dist != nullptr && dist->color == RED) { // C red, S + D black
+      rotate(root, parent, side);
+      if (sibling != nullptr) sibling->color = parent->color;
       parent->color = BLACK;
-      dist->color = BLACK;
-      return;
+      if (dist != nullptr) dist->color = BLACK;
+      break; //end
     }
 
     if (parent->color == RED) { // P red, S and its children black
       parent->color = BLACK;
-      sibling->color = RED;
-      return;
+      if (sibling != nullptr) sibling->color = RED;
+      break; //end
     }
-
-    
   }
-  
+
+  //replace and delete node
+  shift(root, successor, successor->right);
+  delete successor;
 }
 
 
